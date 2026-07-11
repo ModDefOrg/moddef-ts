@@ -1,0 +1,27 @@
+{
+  "name": "@moddef/codegen",
+  "version": "0.1.0",
+  "description": "ModDef TypeScript code generator: typed device classes with literal-type narrowing on enums, flags and register fields.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "bin": {
+    "moddef-ts": "./dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "scripts": {
+    "build": "tsc -b"
+  },
+  "dependencies": {
+    "@bufbuild/protobuf": "^2.2.0",
+    "@moddef/core": "^0.1.0"
+  }
+}

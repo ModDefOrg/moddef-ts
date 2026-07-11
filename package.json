@@ -1,0 +1,22 @@
+{
+  "name": "moddef-ts",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces --if-present",
+    "test": "vitest run",
+    "typecheck": "tsc -b packages/core packages/codegen packages/transport-modbus-serial",
+    "sync-schema": "cp ../moddef/gen/ts/moddef/v1/*.ts packages/core/src/schema/ && sed -i -E 's|from \"(\\./[a-z_]+_pb)\"|from \"\\1.js\"|g' packages/core/src/schema/*_pb.ts && git diff --exit-code -- packages/core/src/schema || echo 'schema updated'",
+    "smoke:browser": "npm run build && node packages/codegen/dist/cli.js gen -o test-output/smoke ../devices/energy-meter/eastron-sdm630/eastron-sdm630.moddef.yaml && node scripts/browser-smoke.mjs"
+  },
+  "devDependencies": {
+    "@types/node": "^26.1.1",
+    "esbuild": "^0.25.0",
+    "typescript": "^5.7.0",
+    "vitest": "^3.0.0"
+  }
+}

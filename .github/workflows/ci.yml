@@ -1,0 +1,56 @@
+name: ci
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    # Fork PRs don't run CI: PRs from outside the org must be pulled into a
+    # repo branch by a maintainer first (supply-chain guard).
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node: [22, 24]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: moddef-ts
+      # Conformance fixtures and the blessed device registry live in sibling repos.
+      - uses: actions/checkout@v4
+        with:
+          repository: ModDefOrg/moddef
+          path: moddef
+      - uses: actions/checkout@v4
+        with:
+          repository: ModDefOrg/devices
+          path: devices
+      - uses: bufbuild/buf-action@v1
+        with:
+          setup_only: true
+      - name: Generate the upstream TS schema (gen/ is not committed in moddef)
+        run: buf generate
+        working-directory: moddef
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+          cache-dependency-path: moddef-ts/package-lock.json
+      - run: npm ci
+        working-directory: moddef-ts
+      - name: Sync vendored schema and fail on drift
+        run: |
+          npm run sync-schema
+          git diff --exit-code -- packages/core/src/schema
+        working-directory: moddef-ts
+      - run: npm run typecheck
+        working-directory: moddef-ts
+      - run: npm test
+        working-directory: moddef-ts
+      - name: browser bundle smoke
+        run: npm run smoke:browser
+        working-directory: moddef-ts
