@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * Adapter integration test: a real Modbus TCP round-trip against
  * modbus-serial's in-process ServerTCP, driving the core Device facade with

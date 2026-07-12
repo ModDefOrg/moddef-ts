@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * Fixture conformance (spec §33): YAML / JSON / binary triples must parse to
  * equal documents and round-trip losslessly; invalid documents must be

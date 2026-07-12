@@ -50,3 +50,16 @@ Conformance tests drive the shared fixtures in `../moddef/fixtures` and the
 device registry in `../devices` (override with `MODDEF_REPO` /
 `MODDEF_DEVICES`). See [DESIGN.md](DESIGN.md) for architecture and the
 deviations log.
+
+## License of generated output
+
+Code generated from a ModDef document (for example by `moddef gen`) is not a
+derivative work of the ModDef tooling or runtime. You may license the generated
+output under any terms you choose. The runtime it imports (this package, `@moddef/core`) is
+Apache-2.0 licensed; see the LICENSE file for its terms, which apply only to the
+runtime, not to your generated code.
+
+## License
+
+Apache-2.0. See [LICENSE](LICENSE), [NOTICE](NOTICE), and
+[CONTRIBUTING.md](CONTRIBUTING.md).

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * Generator tests (spec §33 "code generation tests"):
  *  - deterministic snapshot for a golden fixture,

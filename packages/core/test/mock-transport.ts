@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 /** In-memory Modbus register image implementing the Transport interface. */
 import type { Transport, TransportOpts } from "@moddef/core";
 

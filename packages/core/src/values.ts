@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * Decoded value model (spec §8, §13). Mirrors the Go codec's result kinds:
  * bool, int64/uint64, float64, *big.Rat, string, []byte, []string (flags),

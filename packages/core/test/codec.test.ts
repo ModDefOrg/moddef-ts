@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * Codec unit vectors mirroring go/codec/decode_test.go and roundtrip_test.go:
  * integer widths, endianness, scaling, refs, strings, BCD, flags, fields,

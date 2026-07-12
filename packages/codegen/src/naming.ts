@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 /** Identifier mangling shared by all emitters. Deterministic; collisions get
  * numeric suffixes via a per-scope seen-set (same policy as the Python/Go
  * generators in moddef/go/gen). */

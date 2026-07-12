@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * Measurand queries (spec §22, §26.1). A query selects points by their
  * semantic tuple; unspecified qualifiers are wildcards, base_quantity is

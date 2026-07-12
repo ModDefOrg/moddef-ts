@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * Runtime device facade (spec §32.4): binds a Transport to one device profile
  * for point- and measurand-based reads/writes. Port of go/client/client.go

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * Point decoder (spec §8–§15). Faithful port of go/codec/decode.go, including
  * selector_ref case application (§10.5) — kept in lockstep with the Go codec.

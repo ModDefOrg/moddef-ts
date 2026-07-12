@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * Typed error hierarchy (spec §26.3, §26.4, §32). All errors carry structured
  * fields so callers can branch without parsing messages.

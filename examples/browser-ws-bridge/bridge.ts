@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * Node WebSocket -> Modbus bridge for the browser example. One bridge, one
  * device connection; the adapter's promise queue serializes browser requests.

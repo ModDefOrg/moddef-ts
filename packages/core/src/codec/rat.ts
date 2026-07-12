@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * Minimal exact rational arithmetic over bigint, used to apply spec §10
  * transforms without float rounding until the final conversion to number.

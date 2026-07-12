@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * Register/byte assembly honoring byte order within a word and word order
  * across words (spec §9). Port of go/codec assemble/uintToWords/bytesToWords.

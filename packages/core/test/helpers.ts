@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 /** Test helpers: build Point messages from protojson-shaped literals. */
 import { fromJson } from "@bufbuild/protobuf";
 import { schema } from "@moddef/core";

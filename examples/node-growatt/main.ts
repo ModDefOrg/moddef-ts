@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * Node example: drive a Growatt SPH hybrid inverter with the generated typed
  * client over Modbus RTU (or TCP via a serial gateway).

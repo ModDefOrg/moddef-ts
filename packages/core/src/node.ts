@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * Node-only conveniences: filesystem document loading and a package resolver
  * over MODDEF_PACKAGE_ROOTS-style directories. Import from "@moddef/core/node".

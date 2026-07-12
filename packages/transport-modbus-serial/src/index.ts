@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * @moddef/transport-modbus-serial — ModDef Transport adapter (spec §32.3) for
  * the `modbus-serial` package. Node-only (RTU needs serialport; TCP needs

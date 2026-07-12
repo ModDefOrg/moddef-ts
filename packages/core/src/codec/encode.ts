@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * Point encoder (spec §10 inverse, §11.5 write encoding). Port of
  * go/codec/encode.go. Composed values, register-field structs, and

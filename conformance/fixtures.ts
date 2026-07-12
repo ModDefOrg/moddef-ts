@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 /** Shared paths into the sibling moddef repo's compliance fixtures (spec §33). */
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";

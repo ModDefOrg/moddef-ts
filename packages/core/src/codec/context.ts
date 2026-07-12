@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * Cross-point reference resolution (port of go/codec/device.go): the set of
  * points referenced by scale_ref / selector_ref, and a Context built from

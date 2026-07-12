@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * Import resolution (spec §19). Browser-safe: consumers supply a
  * PackageResolver; a filesystem resolver lives in `@moddef/core/node`.

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * Modbus transport interface (spec §32.3). Offsets are 0-based wire offsets
  * (spec §7.1). Implementations wrap an RTU/TCP client (see

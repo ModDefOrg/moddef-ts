@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * Browser-safe Transport over a WebSocket bridge (see README.md for the
  * protocol). Works with the generated device classes unchanged:

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * @moddef/core — ModDef runtime for TypeScript (spec v0.4).
  * Browser-safe entry: no Node builtins. File helpers live in "@moddef/core/node".
