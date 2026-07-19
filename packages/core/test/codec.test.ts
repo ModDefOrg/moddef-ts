@@ -252,6 +252,89 @@ describe("composed values", () => {
     });
     expect(decodePoint(p, [1500, 0xffff])).toBeCloseTo(150.0, 10); // 1500 * 10^-1
   });
+
+  it("embedded decade exponent (Iskra T6, same-word bit windows)", () => {
+    // FD 01 E2 40: exponent 0xFD = -3 (bits 24-31), mantissa 0x01E240 =
+    // 123456 (bits 0-23) -> 123.456.
+    const p = point({
+      pointId: "pwr",
+      storageType: "COMPOSED",
+      valueType: { primitive: "DECIMAL" },
+      mapping: {
+        lengthWords: 2,
+        composed: {
+          kind: "MANTISSA_EXPONENT",
+          base: "10",
+          mantissa: {
+            offset: 0, lengthWords: 2, byteOrder: "BIG_ENDIAN",
+            wordOrder: "WORD_BIG_ENDIAN", storageType: "S32",
+            bitOffset: 0, bitLength: 24,
+          },
+          exponent: {
+            offset: 0, lengthWords: 2, byteOrder: "BIG_ENDIAN",
+            wordOrder: "WORD_BIG_ENDIAN", storageType: "S16",
+            bitOffset: 24, bitLength: 8,
+          },
+        },
+      },
+    });
+    expect(decodePoint(p, [0xfd01, 0xe240])).toBeCloseTo(123.456, 10);
+    // Negative mantissa: -123456 = 0xFE1DC0 in 24-bit two's complement.
+    expect(decodePoint(p, [0xfdfe, 0x1dc0])).toBeCloseTo(-123.456, 10);
+  });
+
+  it("embedded exponent with unsigned mantissa (Iskra T5) does not sign-extend", () => {
+    const p = point({
+      pointId: "v",
+      storageType: "COMPOSED",
+      valueType: { primitive: "DECIMAL" },
+      mapping: {
+        lengthWords: 2,
+        composed: {
+          kind: "MANTISSA_EXPONENT",
+          base: "10",
+          mantissa: {
+            offset: 0, lengthWords: 2, byteOrder: "BIG_ENDIAN",
+            wordOrder: "WORD_BIG_ENDIAN", storageType: "U32",
+            bitOffset: 0, bitLength: 24,
+          },
+          exponent: {
+            offset: 0, lengthWords: 2, byteOrder: "BIG_ENDIAN",
+            wordOrder: "WORD_BIG_ENDIAN", storageType: "S16",
+            bitOffset: 24, bitLength: 8,
+          },
+        },
+      },
+    });
+    expect(decodePoint(p, [0x0080, 0x0000])).toBe(8388608); // mantissa bit 23 set
+  });
+
+  it("embedded 8-bit exponent + 56-bit mantissa (Eaton PXM GENERAL FORMAT)", () => {
+    const p = point({
+      pointId: "e",
+      storageType: "COMPOSED",
+      valueType: { primitive: "DECIMAL" },
+      mapping: {
+        lengthWords: 4,
+        composed: {
+          kind: "MANTISSA_EXPONENT",
+          base: "10",
+          mantissa: {
+            offset: 0, lengthWords: 4, byteOrder: "BIG_ENDIAN",
+            wordOrder: "WORD_BIG_ENDIAN", storageType: "U64",
+            bitOffset: 0, bitLength: 56,
+          },
+          exponent: {
+            offset: 0, lengthWords: 4, byteOrder: "BIG_ENDIAN",
+            wordOrder: "WORD_BIG_ENDIAN", storageType: "S16",
+            bitOffset: 56, bitLength: 8,
+          },
+        },
+      },
+    });
+    // 123456789 * 10^-1 = 12345678.9
+    expect(decodePoint(p, [0xff00, 0x0000, 0x075b, 0xcd15])).toBeCloseTo(12345678.9, 6);
+  });
 });
 
 describe("encode round-trips", () => {

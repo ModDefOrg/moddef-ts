@@ -213,7 +213,14 @@ function decodeComposed(p: Point, c: ComposedMapping | undefined, regs: ArrayLik
   return R.toNumber(r);
 }
 
-/** Signed integer from a sub-mapping's registers within the supplied window. */
+/**
+ * Integer from a sub-mapping's registers within the supplied window. A bit
+ * window (bit_length > 0) selects [bit_offset, bit_offset+bit_length) of the
+ * assembled window and sign-extends from bit_length — the §14.2 embedded
+ * decade exponent, where mantissa and exponent share a word (Iskra T5/T6,
+ * Eaton PXM). Signedness comes from the sub-mapping's storage_type; absent
+ * one, the value is signed (the pre-v0.5 behavior).
+ */
 function decodeSubInt(m: Mapping | undefined, regs: ArrayLike<number>): bigint {
   if (!m) return 0n;
   const idx = m.offset;
@@ -223,8 +230,20 @@ function decodeSubInt(m: Mapping | undefined, regs: ArrayLike<number>): bigint {
   const wordBig = m.wordOrder !== WordOrder.WORD_LITTLE_ENDIAN;
   const slice: number[] = [];
   for (let i = idx; i < idx + n; i++) slice.push((regs[i] ?? 0) & 0xffff);
-  const bytes = assemble(slice, byteBig, wordBig);
-  return signExtend(decodeUint(bytes), n * 16);
+  let raw = decodeUint(assemble(slice, byteBig, wordBig));
+
+  const st = m.storageType;
+  let bits = n * 16;
+  if (st !== StorageType.STORAGE_TYPE_UNSPECIFIED) bits = storageBits(st, n);
+  if (m.bitLength > 0) {
+    raw = (raw >> BigInt(m.bitOffset)) & maskFor(m.bitLength);
+    bits = m.bitLength;
+  }
+  if (st === StorageType.STORAGE_TYPE_UNSPECIFIED || isSigned(st)) {
+    return signExtend(raw, bits);
+  }
+  if (bits < 64) raw &= maskFor(bits);
+  return raw;
 }
 
 function decodeFlags(bytes: Uint8Array, fl: FlagSet): readonly string[] {
