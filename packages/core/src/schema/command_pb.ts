@@ -321,8 +321,9 @@ export type Command = Message<"moddef.v1.Command"> & {
   commandId: string;
 
   /**
-   * Forward-compat binding to a stdlib command signature (e.g.
-   * "stdlib:ocmf-transaction"). Unvalidated until moddef#3.
+   * Optional free-form role tag naming the standard procedure this command
+   * implements (e.g. "ocmf:start_transaction"). Carried for consumer
+   * dispatch; intentionally not resolved or validated.
    *
    * @generated from field: string command_ref = 2;
    */
