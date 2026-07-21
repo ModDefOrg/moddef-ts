@@ -22,20 +22,37 @@ import {
   AddressSpace,
   DiscoveryKind,
   StorageType,
+  type CommandParam,
   type DeviceProfile,
   type ModDefDocument,
   type Point,
+  type PollStep,
   type RegisterBlock,
+  type WriteStep,
 } from "./schema/index.js";
 import type { Transport, TransportOpts } from "./transport.js";
 import {
   AmbiguousMeasurandError,
+  CommandNotFoundError,
+  DecodeError,
   MeasurandNotSupportedError,
   PointNotFoundError,
+  PollTimeoutError,
+  RequiredParamMissingError,
+  StepReferenceError,
   UnsupportedMappingError,
   WriteAccessError,
   WriteConstraintError,
 } from "./errors.js";
+import {
+  conditionMet,
+  DEFAULT_POLL_INTERVAL_MS,
+  MAX_READ_WORDS,
+  MAX_WRITE_WORDS,
+  paramPoint,
+  rawInt,
+  rawPoint,
+} from "./command.js";
 import { decodePoint, emptyContext, type CodecContext } from "./codec/decode.js";
 import { encodePoint, words, type EncodableValue } from "./codec/encode.js";
 import { asInt } from "./codec/context.js";
@@ -137,7 +154,151 @@ export class Device {
     await this.t.writeHolding(off, regs, opts);
   }
 
+  /**
+   * Execute a §11.7 command: params are the caller's inputs keyed by
+   * CommandParam.field; the returned map holds results keyed by
+   * CommandResult.field. Steps run strictly in declaration order; a poll
+   * step past its timeout_ms rejects with PollTimeoutError. Poll conditions
+   * and trigger writes use raw (pre-transform) register values.
+   */
+  async runCommand(
+    id: string,
+    params: Record<string, EncodableValue> = {},
+    opts?: TransportOpts,
+  ): Promise<Map<string, DecodedValue>> {
+    const cmd = this.profile.commands.find((c) => c.commandId === id);
+    if (!cmd) throw new CommandNotFoundError(id);
+
+    const byField = new Map(cmd.params.map((p) => [p.field, p]));
+    for (const p of cmd.params) {
+      if (p.required && !(p.field in params)) throw new RequiredParamMissingError(id, p.field);
+    }
+
+    const bindings = new Map<string, DecodedValue>();
+    for (const st of cmd.steps) {
+      switch (st.step.case) {
+        case "write":
+          await this.runWriteStep(st.step.value, byField, params, opts);
+          break;
+        case "poll":
+          await this.runPollStep(st.step.value, opts);
+          break;
+        case "read": {
+          const r = st.step.value;
+          const v = await this.readCommandPoint(r.pointId, opts);
+          if (r.into) bindings.set(r.into, v);
+          break;
+        }
+      }
+    }
+
+    const out = new Map<string, DecodedValue>();
+    for (const res of cmd.results) {
+      out.set(
+        res.field,
+        bindings.has(res.from) ? bindings.get(res.from)! : await this.readCommandPoint(res.from, opts),
+      );
+    }
+    return out;
+  }
+
   // --- internals ----------------------------------------------------------- //
+
+  private async runWriteStep(
+    w: WriteStep,
+    byField: Map<string, CommandParam>,
+    params: Record<string, EncodableValue>,
+    opts?: TransportOpts,
+  ): Promise<void> {
+    if (w.target.case === "param") {
+      const field = w.target.value;
+      const cp = byField.get(field);
+      if (!cp) throw new StepReferenceError(field, "param");
+      if (!(field in params)) return; // optional param not supplied — skip
+      const regs = encodePoint(paramPoint(cp), params[field]!);
+      const space =
+        cp.mapping && cp.mapping.space !== AddressSpace.ADDRESS_SPACE_UNSPECIFIED
+          ? cp.mapping.space
+          : AddressSpace.HOLDING_REGISTER;
+      await this.writeChunked(space, cp.mapping?.offset ?? 0, regs, opts);
+      return;
+    }
+    if (w.target.case === "trigger") {
+      const tr = w.target.value;
+      const pi = this.pts.get(tr.pointId);
+      if (!pi) throw new StepReferenceError(tr.pointId, "point");
+      const space = this.spaceOf(pi.point, pi.block);
+      const off = await this.offsetOf(pi.point, pi.block, opts);
+      const regs = encodePoint(rawPoint(pi.point), tr.value);
+      await this.writeChunked(space, off, regs, opts);
+      return;
+    }
+    throw new StepReferenceError("(unset)", "write target");
+  }
+
+  private async runPollStep(p: PollStep, opts?: TransportOpts): Promise<void> {
+    const pi = this.pts.get(p.pointId);
+    if (!pi) throw new StepReferenceError(p.pointId, "point");
+    const interval = p.intervalMs > 0 ? p.intervalMs : DEFAULT_POLL_INTERVAL_MS;
+    const deadline = p.timeoutMs > 0 ? Date.now() + p.timeoutMs : undefined;
+    for (;;) {
+      const regs = await this.readRegisters(pi.point, opts);
+      if (conditionMet(p.until, rawInt(pi.point, regs))) return;
+      if (deadline !== undefined && Date.now() >= deadline) {
+        throw new PollTimeoutError(p.pointId, p.timeoutMs);
+      }
+      opts?.signal?.throwIfAborted();
+      await new Promise((r) => setTimeout(r, interval));
+    }
+  }
+
+  /** Read/decode a point for a read step or result: length_ref-aware, chunked. */
+  private async readCommandPoint(id: string, opts?: TransportOpts): Promise<DecodedValue> {
+    const pi = this.pts.get(id);
+    if (!pi) throw new StepReferenceError(id, "point");
+    const p = pi.point;
+    const ctx = await this.refContext(p, opts);
+    const space = this.spaceOf(p, pi.block);
+    let off = await this.offsetOf(p, pi.block, opts);
+    let n = await this.pointReadWords(p, opts);
+    let regs: Uint16Array;
+    if (space === AddressSpace.HOLDING_REGISTER || space === AddressSpace.INPUT_REGISTER) {
+      regs = new Uint16Array(n);
+      let at = 0;
+      while (n > 0) {
+        const c = Math.min(n, MAX_READ_WORDS);
+        regs.set(await this.readSpace(space, off, c, opts), at);
+        at += c;
+        off += c;
+        n -= c;
+      }
+    } else {
+      regs = await this.readSpace(space, off, n, opts);
+    }
+    return decodePoint(p, regs, ctx);
+  }
+
+  /** Write registers in ≤123-word slices (single-PDU cap). */
+  private async writeChunked(
+    space: AddressSpace,
+    off: number,
+    regs: Uint16Array,
+    opts?: TransportOpts,
+  ): Promise<void> {
+    if (space === AddressSpace.COIL) {
+      await this.t.writeCoil(off, (regs[0] ?? 0) !== 0, opts);
+      return;
+    }
+    if (space !== AddressSpace.HOLDING_REGISTER) {
+      throw new UnsupportedMappingError("(command)", `cannot write address space ${AddressSpace[space]}`);
+    }
+    let i = 0;
+    while (i < regs.length) {
+      const n = Math.min(MAX_WRITE_WORDS, regs.length - i);
+      await this.t.writeHolding(off + i, regs.subarray(i, i + n), opts);
+      i += n;
+    }
+  }
 
   /** Read the points referenced by p's scale_ref/selector_ref (spec §10.4/§10.5). */
   private async refContext(p: Point, opts?: TransportOpts): Promise<CodecContext> {
@@ -177,9 +338,34 @@ export class Device {
     }
     const { block } = this.point(p.pointId);
     const space = this.spaceOf(p, block);
-    const n = pointWords(p);
+    const n = await this.pointReadWords(p, opts);
     const off = await this.offsetOf(p, block, opts);
     return this.readSpace(space, off, n, opts);
+  }
+
+  /**
+   * Effective register count for reading p: the static pointWords, or — when
+   * the mapping sets length_ref (§11.7.1) — the decoded value of the
+   * referenced point, clamped to length_words as an upper bound.
+   */
+  private async pointReadWords(p: Point, opts?: TransportOpts): Promise<number> {
+    const lr = p.mapping?.lengthRef;
+    if (!lr) return pointWords(p);
+    const pi = this.pts.get(lr.pointId);
+    if (!pi) throw new PointNotFoundError(lr.pointId);
+    // MDE506 forbids chains/cycles; guard so a bad document cannot recurse.
+    if (pi.point.mapping?.lengthRef) {
+      throw new UnsupportedMappingError(p.pointId, `chained length_ref via ${pi.point.pointId}`);
+    }
+    const regs = await this.readRegisters(pi.point, opts);
+    const iv = asInt(decodePoint(pi.point, regs));
+    if (iv === undefined || iv < 0n) {
+      throw new DecodeError(pi.point.pointId, "length_ref did not decode to a non-negative integer");
+    }
+    let n = Number(iv);
+    const max = p.mapping?.lengthWords ?? 0;
+    if (max > 0 && n > max) n = max;
+    return n;
   }
 
   private async readSpace(

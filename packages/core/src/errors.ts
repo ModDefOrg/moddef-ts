@@ -101,3 +101,40 @@ export class TransportError extends ModDefError {
     super(message, options);
   }
 }
+
+/** A command id does not exist in the device profile (spec §11.7). */
+export class CommandNotFoundError extends ModDefError {
+  constructor(readonly commandId: string) {
+    super(`command not found: ${commandId}`);
+  }
+}
+
+/** A required command param was not supplied to runCommand (spec §11.7). */
+export class RequiredParamMissingError extends ModDefError {
+  constructor(
+    readonly commandId: string,
+    readonly field: string,
+  ) {
+    super(`command ${commandId}: required param missing: ${field}`);
+  }
+}
+
+/** A poll step exceeded its timeout_ms (spec §11.7). */
+export class PollTimeoutError extends ModDefError {
+  constructor(
+    readonly pointId: string,
+    readonly timeoutMs: number,
+  ) {
+    super(`poll step timed out on ${pointId} after ${timeoutMs}ms`);
+  }
+}
+
+/** A command step/result reference does not resolve (spec §11.7). */
+export class StepReferenceError extends ModDefError {
+  constructor(
+    readonly ref: string,
+    readonly kind: string,
+  ) {
+    super(`command step reference not found: ${kind} ${ref}`);
+  }
+}

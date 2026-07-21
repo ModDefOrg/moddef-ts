@@ -15,6 +15,7 @@ export * from "./resolve.js";
 export * from "./transport.js";
 export * from "./measurand.js";
 export * from "./device.js";
+export * from "./command.js";
 export { decodePoint, decodePointRaw, emptyContext, storageBits, isSigned } from "./codec/decode.js";
 export type { CodecContext } from "./codec/decode.js";
 export { encodePoint, words } from "./codec/encode.js";

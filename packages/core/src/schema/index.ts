@@ -3,5 +3,6 @@
 export * from "./types_pb.js";
 export * from "./measurand_pb.js";
 export * from "./mapping_pb.js";
+export * from "./command_pb.js";
 export * from "./device_pb.js";
 export * from "./document_pb.js";
